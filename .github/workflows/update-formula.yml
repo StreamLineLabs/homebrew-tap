@@ -1,0 +1,58 @@
+name: Update Formula
+
+on:
+  repository_dispatch:
+    types: [release-published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 0.2.0)"
+        required: true
+
+jobs:
+  update:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${{ github.event.client_payload.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update formula
+        run: ./scripts/update-formula.sh "${{ steps.version.outputs.version }}"
+
+      - name: Validate formula
+        run: |
+          ruby -c streamline.rb
+          brew audit --formula streamline.rb || true
+
+      - name: Check for placeholder hashes
+        run: |
+          if grep -q "PLACEHOLDER_SHA256" streamline.rb; then
+            echo "::error::Formula still contains placeholder SHA256 hashes"
+            exit 1
+          fi
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: update formula to v${{ steps.version.outputs.version }}"
+          title: "Update Streamline to v${{ steps.version.outputs.version }}"
+          body: |
+            Automated formula update for Streamline v${{ steps.version.outputs.version }}.
+
+            - Updated SHA256 hashes from release artifacts
+            - Updated version string
+
+            Triggered by release of [v${{ steps.version.outputs.version }}](https://github.com/streamlinelabs/streamline/releases/tag/v${{ steps.version.outputs.version }}).
+          branch: "update/v${{ steps.version.outputs.version }}"
+          labels: automated
