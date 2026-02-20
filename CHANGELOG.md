@@ -1,6 +1,7 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+- style: normalize whitespace in formula (2026-02-20)
 - feat: add post-install verification step (2026-02-19)
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
