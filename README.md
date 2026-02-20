@@ -161,3 +161,4 @@ make test-install  # Full install + test cycle
 
 Apache-2.0
 <!-- refactor: 61f2f890 -->
+<!-- docs: 037adec4 -->
