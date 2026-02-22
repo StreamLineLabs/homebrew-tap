@@ -1,6 +1,7 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+- chore: bump formula version to latest release (2026-02-22)
 - fix: correct bottle hash for arm64 darwin (2026-02-22)
 - docs: update installation instructions in formula (2026-02-22)
 - fix: correct version constraint in formula (2026-02-21)
