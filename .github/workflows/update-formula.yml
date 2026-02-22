@@ -22,10 +22,12 @@ jobs:
         id: version
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            RAW="${{ github.event.inputs.version }}"
           else
-            echo "version=${{ github.event.client_payload.version }}" >> "$GITHUB_OUTPUT"
+            RAW="${{ github.event.client_payload.version }}"
           fi
+          # Strip leading 'v' if present (e.g., v0.2.0 -> 0.2.0)
+          echo "version=${RAW#v}" >> "$GITHUB_OUTPUT"
 
       - name: Update formula
         run: ./scripts/update-formula.sh "${{ steps.version.outputs.version }}"
