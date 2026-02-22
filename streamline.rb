@@ -63,6 +63,9 @@ class Streamline < Formula
       bin.install "streamline"
       bin.install "streamline-cli"
     end
+
+    # Verify binaries were installed
+    odie "streamline binary not found in archive" unless (bin/"streamline").exist?
   end
 
   def post_install
