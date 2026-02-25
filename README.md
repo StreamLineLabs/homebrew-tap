@@ -163,3 +163,5 @@ Apache-2.0
 <!-- refactor: 61f2f890 -->
 <!-- docs: 037adec4 -->
 <!-- chore: 51a2c084 -->
+
+<!-- add tap installation troubleshooting notes -->
