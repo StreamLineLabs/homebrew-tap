@@ -116,3 +116,4 @@ jobs:
           cp streamline.rb "$(brew --repository streamlinelabs/test)/Formula/streamline.rb"
           brew install --HEAD streamlinelabs/test/streamline
         continue-on-error: true
+
