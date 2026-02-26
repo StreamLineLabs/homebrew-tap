@@ -32,3 +32,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `brew services` integration for background server management
 - Automated formula update workflow
 - Cask support for macOS
+
