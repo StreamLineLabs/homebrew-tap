@@ -155,3 +155,5 @@ class Streamline < Formula
 end
 # fix: 68f28b69
 # chore: 068f5016
+
+# rubocop:enable Style/MutableConstant
