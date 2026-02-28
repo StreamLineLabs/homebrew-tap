@@ -14,7 +14,7 @@ jobs:
     name: Formula Lint
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Ruby syntax check
         run: ruby -c streamline.rb
@@ -36,7 +36,7 @@ jobs:
     runs-on: macos-latest
     needs: lint
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install from tap
         run: |
@@ -60,7 +60,7 @@ jobs:
     runs-on: macos-13
     needs: lint
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install from tap
         run: |
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: lint
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@master
@@ -105,7 +105,7 @@ jobs:
     # Only run on main branch or manual triggers to avoid long CI times on PRs
     if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
