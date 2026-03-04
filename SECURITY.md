@@ -33,3 +33,4 @@ When a security vulnerability is reported:
 ## Contact
 
 For security-related inquiries, please email **security@streamline.dev**.
+
