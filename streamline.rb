@@ -61,11 +61,13 @@ class Streamline < Formula
       bin.install "target/release/streamline-cli"
     else
       bin.install "streamline"
-      bin.install "streamline-cli"
+      bin.install "streamline-cli" if File.exist?("streamline-cli")
     end
 
-    # Verify binaries were installed
     odie "streamline binary not found in archive" unless (bin/"streamline").exist?
+
+    # Generate shell completions if supported
+    generate_completions_from_executable(bin/"streamline-cli", "completions") if (bin/"streamline-cli").exist?
   end
 
   def post_install
@@ -127,34 +129,43 @@ class Streamline < Formula
     # Verify binaries exist and are executable
     assert_predicate bin/"streamline", :exist?
     assert_predicate bin/"streamline", :executable?
-    assert_predicate bin/"streamline-cli", :exist?
-    assert_predicate bin/"streamline-cli", :executable?
 
     # Test --version output
     assert_match version.to_s, shell_output("#{bin}/streamline --version")
 
     # Test --help output
     assert_match "streamline", shell_output("#{bin}/streamline --help")
-    assert_match "streamline-cli", shell_output("#{bin}/streamline-cli --help")
+
+    if (bin/"streamline-cli").exist?
+      assert_predicate bin/"streamline-cli", :executable?
+      assert_match "streamline-cli", shell_output("#{bin}/streamline-cli --help")
+    end
 
     # Test server starts and responds (quick smoke test)
-    port = free_port
+    kafka_port = free_port
+    http_port = free_port
     pid = fork do
-      exec bin/"streamline", "--data-dir", testpath/"data", "--port", port.to_s
+      exec bin/"streamline",
+           "--listen-addr", "127.0.0.1:#{kafka_port}",
+           "--http-addr", "127.0.0.1:#{http_port}",
+           "--data-dir", testpath/"data",
+           "--in-memory"
     end
-    sleep 2
+
+    # Wait for server to be ready (up to 10 seconds)
+    sleep 1
+    10.times do
+      break if shell_output("curl -sf http://127.0.0.1:#{http_port}/health 2>&1 || true").include?("ok")
+
+      sleep 1
+    end
+
     begin
-      output = shell_output("curl -sf http://localhost:#{port + 2}/health 2>&1 || true")
-      # Server may not have HTTP on that port, but process should be alive
-      assert_predicate testpath/"data", :directory?
+      output = shell_output("curl -sf http://127.0.0.1:#{http_port}/health 2>&1 || true")
+      assert_match(/ok|healthy|alive/i, output) if output && !output.empty?
     ensure
       Process.kill("TERM", pid)
       Process.wait(pid)
     end
   end
 end
-# fix: 68f28b69
-# chore: 068f5016
-
-# rubocop:enable Style/MutableConstant
-

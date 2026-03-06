@@ -6,10 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-- docs: add caveats section for Apple Silicon (2026-03-06)
 ## [Unreleased]
 
-## [0.2.0] - 2026-02-28
+- docs: add caveats section for Apple Silicon (2026-03-06)
 - **Changed**: pin minimum macOS version requirement
 - **Fixed**: correct homepage URL in formula metadata
 - **Changed**: normalize formula whitespace and comments
@@ -28,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Correct bottle hash for arm64 darwin
 - Correct version constraint in formula
 
+
 ## [0.2.0] - 2026-02-18
 
 ### Added
@@ -36,4 +36,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `brew services` integration for background server management
 - Automated formula update workflow
 - Cask support for macOS
-

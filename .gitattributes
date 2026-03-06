@@ -1,0 +1,4 @@
+* text=auto
+*.rb text diff=ruby
+*.md text diff=markdown
+*.sh text eol=lf
