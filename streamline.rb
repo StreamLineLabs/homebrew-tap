@@ -170,3 +170,9 @@ class Streamline < Formula
     end
   end
 end
+
+
+  def check_binary
+    # Verify the binary is executable and returns a valid version
+    system "#{bin}/streamline", "--version"
+  end
