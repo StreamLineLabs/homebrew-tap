@@ -11,6 +11,7 @@
 # Or direct installation:
 #   brew install streamlinelabs/streamline/streamline
 
+
 class Streamline < Formula
   desc "The Redis of Streaming - Kafka-compatible streaming platform"
   homepage "https://github.com/streamlinelabs/streamline"
