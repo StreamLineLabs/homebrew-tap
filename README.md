@@ -166,3 +166,20 @@ Apache-2.0
 
 <!-- add tap installation troubleshooting notes -->
 
+
+
+## Upgrading
+
+```bash
+brew update
+brew upgrade streamline
+```
+
+## Troubleshooting
+
+If you encounter issues after upgrading:
+
+```bash
+brew uninstall streamline
+brew install streamline
+```
