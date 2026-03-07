@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+
 ## [Unreleased]
 
 - docs: add caveats section for Apple Silicon (2026-03-06)
