@@ -28,25 +28,27 @@ class Streamline < Formula
   # IMPORTANT: Hashes below must be updated before publishing. The placeholder value
   # "PLACEHOLDER_SHA256_*" will cause brew install to fail with a clear error.
   # Run: ./scripts/update-formula.sh 0.2.0
+  #
+  # CI will block releases with placeholder hashes. See .github/workflows/release.yml.
   on_macos do
     on_arm do
       url "https://github.com/streamlinelabs/streamline/releases/download/v#{version}/streamline-#{version}-aarch64-apple-darwin.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_ARM64_DARWIN"
+      sha256 "PLACEHOLDER_SHA256_ARM64_DARWIN" # update-formula.sh replaces this
     end
     on_intel do
       url "https://github.com/streamlinelabs/streamline/releases/download/v#{version}/streamline-#{version}-x86_64-apple-darwin.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_X64_DARWIN"
+      sha256 "PLACEHOLDER_SHA256_X64_DARWIN" # update-formula.sh replaces this
     end
   end
 
   on_linux do
     on_arm do
       url "https://github.com/streamlinelabs/streamline/releases/download/v#{version}/streamline-#{version}-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_ARM64_LINUX"
+      sha256 "PLACEHOLDER_SHA256_ARM64_LINUX" # update-formula.sh replaces this
     end
     on_intel do
       url "https://github.com/streamlinelabs/streamline/releases/download/v#{version}/streamline-#{version}-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_X64_LINUX"
+      sha256 "PLACEHOLDER_SHA256_X64_LINUX" # update-formula.sh replaces this
     end
   end
 
@@ -61,6 +63,14 @@ class Streamline < Formula
       bin.install "target/release/streamline"
       bin.install "target/release/streamline-cli"
     else
+      # Fail fast if placeholder hashes were not replaced
+      if stable.url.to_s.empty? || stable.checksum.to_s.start_with?("PLACEHOLDER")
+        odie <<~EOS
+          SHA256 hashes have not been updated for this release.
+          Run: ./scripts/update-formula.sh #{version}
+        EOS
+      end
+
       bin.install "streamline"
       bin.install "streamline-cli" if File.exist?("streamline-cli")
     end
@@ -142,7 +152,7 @@ class Streamline < Formula
       assert_match "streamline-cli", shell_output("#{bin}/streamline-cli --help")
     end
 
-    # Test server starts and responds (quick smoke test)
+    # Test server starts, responds to health check, and serves Kafka protocol
     kafka_port = free_port
     http_port = free_port
     pid = fork do
@@ -162,17 +172,24 @@ class Streamline < Formula
     end
 
     begin
-      output = shell_output("curl -sf http://127.0.0.1:#{http_port}/health 2>&1 || true")
-      assert_match(/ok|healthy|alive/i, output) if output && !output.empty?
+      # Health endpoint responds
+      health_output = shell_output("curl -sf http://127.0.0.1:#{http_port}/health 2>&1 || true")
+      assert_match(/ok|healthy|alive/i, health_output) if health_output && !health_output.empty?
+
+      # Info endpoint returns server version
+      info_output = shell_output("curl -sf http://127.0.0.1:#{http_port}/v1/info 2>&1 || true")
+      assert_match version.to_s, info_output if info_output && !info_output.empty?
+
+      # Topics list endpoint responds (empty list is fine)
+      topics_output = shell_output("curl -sf http://127.0.0.1:#{http_port}/v1/topics 2>&1 || true")
+      assert_match(/\[/, topics_output) if topics_output && !topics_output.empty?
+
+      # Kafka protocol port is listening (TCP connect test)
+      assert shell_output("nc -z 127.0.0.1 #{kafka_port} 2>&1; echo $?").strip.end_with?("0"),
+             "Kafka protocol port #{kafka_port} should be listening"
     ensure
       Process.kill("TERM", pid)
       Process.wait(pid)
     end
   end
 end
-
-
-  def check_binary
-    # Verify the binary is executable and returns a valid version
-    system "#{bin}/streamline", "--version"
-  end

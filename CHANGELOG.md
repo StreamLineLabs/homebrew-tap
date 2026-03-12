@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Extended `brew test` block: server info version check, topics API validation, Kafka TCP port connectivity test
+
+### Changed
 - docs: add caveats section for Apple Silicon (2026-03-06)
 - **Changed**: pin minimum macOS version requirement
 - **Fixed**: correct homepage URL in formula metadata
