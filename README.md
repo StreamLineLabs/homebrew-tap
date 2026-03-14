@@ -183,3 +183,4 @@ If you encounter issues after upgrading:
 brew uninstall streamline
 brew install streamline
 ```
+
