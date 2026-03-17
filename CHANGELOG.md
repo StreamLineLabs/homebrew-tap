@@ -46,3 +46,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - chore: update formula version annotation to v0.3.0
 - ci: add formula audit step to CI pipeline
 - docs: add post-install usage notes to formula
+- chore: sync formula tarball hash with latest upstream release
