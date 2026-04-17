@@ -3,6 +3,7 @@
 [![CI](https://github.com/streamlinelabs/homebrew-tap/actions/workflows/ci.yml/badge.svg)](https://github.com/streamlinelabs/homebrew-tap/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Homebrew](https://img.shields.io/badge/Homebrew-Tap-FBB040.svg)](https://brew.sh/)
+[![Release](https://img.shields.io/github/v/release/streamlinelabs/homebrew-tap?label=release)](https://github.com/streamlinelabs/homebrew-tap/releases)
 
 Official [Homebrew](https://brew.sh) tap for [Streamline](https://github.com/streamlinelabs/streamline) — The Redis of Streaming.
 

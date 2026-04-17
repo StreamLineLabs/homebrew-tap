@@ -57,9 +57,15 @@ class Streamline < Formula
     depends_on "rust" => :build
   end
 
+  option "with-moonshot", "Include experimental moonshot features (semantic search, agent memory, attestation, branches)"
+
   def install
     if build.head?
-      system "cargo", "build", "--release"
+      if build.with?("moonshot")
+        system "cargo", "build", "--release", "--features", "moonshot"
+      else
+        system "cargo", "build", "--release"
+      end
       bin.install "target/release/streamline"
       bin.install "target/release/streamline-cli"
     else
