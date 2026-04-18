@@ -15,7 +15,7 @@
 class Streamline < Formula
   desc "The Redis of Streaming - Kafka-compatible streaming platform"
   homepage "https://github.com/streamlinelabs/streamline"
-  version "0.2.0"
+  version "0.3.0"
   license "Apache-2.0"
 
   # Pre-built binaries — no bottles needed
