@@ -33,13 +33,11 @@ jobs:
         run: ./scripts/update-formula.sh "${{ steps.version.outputs.version }}"
 
       - name: Validate formula
-        run: |
-          ruby -c streamline.rb
-          brew audit --formula streamline.rb || true
+        run: ./scripts/validate-formula.sh
 
       - name: Check for placeholder hashes
         run: |
-          if grep -q "PLACEHOLDER_SHA256" streamline.rb; then
+          if grep -q 'sha256 "PLACEHOLDER_SHA256' streamline.rb; then
             echo "::error::Formula still contains placeholder SHA256 hashes"
             exit 1
           fi

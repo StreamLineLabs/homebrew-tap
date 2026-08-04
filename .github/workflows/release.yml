@@ -9,14 +9,19 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Validate formula
         run: |
-          brew install --build-from-source ./Formula/streamline.rb
-          brew test ./Formula/streamline.rb
+          if grep -q 'sha256 "PLACEHOLDER_SHA256' streamline.rb; then
+            echo "::error::Formula still contains placeholder SHA256 hashes"
+            exit 1
+          fi
+          ./scripts/validate-formula.sh
+          brew install streamlinelabs/test/streamline
+          brew test streamlinelabs/test/streamline
 
       - uses: softprops/action-gh-release@v2
         with:

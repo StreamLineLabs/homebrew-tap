@@ -28,8 +28,8 @@ for arg in "$@"; do
 done
 
 REPO="streamlinelabs/streamline"
-FORMULA="streamline.rb"
-BASE_URL="https://github.com/${REPO}/releases/download/v${VERSION}"
+FORMULA="${STREAMLINE_FORMULA:-streamline.rb}"
+BASE_URL="${STREAMLINE_RELEASE_BASE_URL:-https://github.com/${REPO}/releases/download/v${VERSION}}"
 
 TARGETS=(
   "aarch64-apple-darwin"
@@ -58,13 +58,12 @@ echo "==> Updating formula for Streamline v${VERSION}"
 
 if [ "$DRY_RUN" = true ]; then
   echo "   (dry-run mode — no files will be modified)"
-  cp "${FORMULA}" "${TMPDIR}/streamline.rb.orig"
 fi
 
 FAILED_TARGETS=()
+HASHES=()
 for i in "${!TARGETS[@]}"; do
   target="${TARGETS[$i]}"
-  placeholder="${PLACEHOLDER_KEYS[$i]}"
   tarball="streamline-${VERSION}-${target}.tar.gz"
   url="${BASE_URL}/${tarball}"
 
@@ -87,29 +86,40 @@ for i in "${!TARGETS[@]}"; do
   fi
 
   echo "  ✅ ${target}: ${sha256}"
-
-  if [ "$DRY_RUN" = true ]; then
-    continue
-  fi
-
-  # Replace placeholder or previous hash in the formula
-  if grep -q "${placeholder}" "${FORMULA}"; then
-    sed -i.bak "s/${placeholder}/${sha256}/" "${FORMULA}"
-  else
-    # Replace existing hash on the line following the matching URL
-    sed -i.bak "/${target}/{ n; s/sha256 \"[a-f0-9]\{64\}\"/sha256 \"${sha256}\"/; }" "${FORMULA}"
-  fi
+  HASHES[i]="${sha256}"
 done
+
+if [ "${#FAILED_TARGETS[@]}" -gt 0 ]; then
+  echo "==> Missing artifacts for: ${FAILED_TARGETS[*]}"
+  echo "    Formula was not modified."
+  exit 1
+fi
 
 if [ "$DRY_RUN" = true ]; then
   echo "==> Dry run complete. No changes written."
   exit 0
 fi
 
-# Update version if it changed
-CURRENT_VERSION=$(grep 'version "' "${FORMULA}" | head -1 | sed 's/.*version "\(.*\)"/\1/')
+# Replace every checksum only after all release artifacts have validated.
+for i in "${!TARGETS[@]}"; do
+  target="${TARGETS[$i]}"
+  placeholder="${PLACEHOLDER_KEYS[$i]}"
+  sha256="${HASHES[$i]}"
+  if grep -q "${placeholder}" "${FORMULA}"; then
+    sed -i.bak "s/${placeholder}/${sha256}/" "${FORMULA}"
+  else
+    sed -i.bak "/${target}/{ n; s/sha256 \"[a-f0-9]\{64\}\"/sha256 \"${sha256}\"/; }" "${FORMULA}"
+  fi
+done
+
+# Update versioned release URLs if they changed
+CURRENT_VERSION=$(grep -Eo 'releases/download/v[0-9]+\.[0-9]+\.[0-9]+' "${FORMULA}" |
+  head -1 | sed 's#releases/download/v##')
 if [ "${CURRENT_VERSION}" != "${VERSION}" ]; then
-  sed -i.bak "s/version \"${CURRENT_VERSION}\"/version \"${VERSION}\"/" "${FORMULA}"
+  sed -i.bak \
+    -e "s#/v${CURRENT_VERSION}/#/v${VERSION}/#g" \
+    -e "s/streamline-${CURRENT_VERSION}-/streamline-${VERSION}-/g" \
+    "${FORMULA}"
   echo "  📦 Version updated: ${CURRENT_VERSION} → ${VERSION}"
 fi
 
@@ -117,7 +127,7 @@ rm -f "${FORMULA}.bak"
 
 # Final validation: ensure no placeholder or empty-string hashes remain
 EMPTY_HASH="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-if grep -q "PLACEHOLDER_SHA256" "${FORMULA}"; then
+if grep -q 'sha256 "PLACEHOLDER_SHA256' "${FORMULA}"; then
   echo "⚠️  Warning: Formula still contains placeholder hashes. Some artifacts may not have been available."
   echo "   Re-run this script once all release artifacts are published."
   exit 1

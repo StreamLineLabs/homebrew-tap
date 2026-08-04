@@ -94,8 +94,8 @@ Streamline is Kafka protocol-compatible. Connect any Kafka client to `localhost:
 |---|---|
 | `$(brew --prefix)/bin/streamline` | Server binary |
 | `$(brew --prefix)/bin/streamline-cli` | CLI binary |
-| `/usr/local/var/streamline/` | Data directory |
-| `/usr/local/var/log/streamline.log` | Log file |
+| `$(brew --prefix)/var/streamline/` | Data directory |
+| `$(brew --prefix)/var/log/streamline.log` | Log file |
 
 ## Troubleshooting
 
@@ -113,13 +113,13 @@ brew install streamline
 Check the log file for errors:
 
 ```bash
-tail -50 /usr/local/var/log/streamline.log
+tail -50 "$(brew --prefix)/var/log/streamline.log"
 ```
 
 Ensure the data directory exists and is writable:
 
 ```bash
-mkdir -p /usr/local/var/streamline
+mkdir -p "$(brew --prefix)/var/streamline"
 ```
 
 ### Port Already in Use
@@ -142,7 +142,8 @@ brew doctor
 
 ```bash
 brew services stop streamline
-rm -rf /usr/local/var/streamline/*
+rm -rf "$(brew --prefix)/var/streamline"
+mkdir -p "$(brew --prefix)/var/streamline"
 brew services start streamline
 ```
 
@@ -164,25 +165,4 @@ Apache-2.0
 <!-- refactor: 61f2f890 -->
 <!-- docs: 037adec4 -->
 <!-- chore: 51a2c084 -->
-
-<!-- add tap installation troubleshooting notes -->
-
-
-
-## Upgrading
-
-```bash
-brew update
-brew upgrade streamline
-```
-
-## Troubleshooting
-
-If you encounter issues after upgrading:
-
-```bash
-brew uninstall streamline
-brew install streamline
-```
-
 

@@ -7,13 +7,10 @@ lint: ## Validate formula syntax
 	ruby -c streamline.rb
 
 audit: lint ## Run Homebrew strict audit
-	@echo "==> Setting up temporary tap..."
-	@brew tap-new streamlinelabs/test --no-git 2>/dev/null || true
-	@cp streamline.rb "$$(brew --repository streamlinelabs/test)/Formula/streamline.rb"
-	brew audit --strict --formula streamlinelabs/test/streamline
-	brew style streamlinelabs/test/streamline || true
+	./scripts/validate-formula.sh
 
-test: lint ## Run formula validation (alias for lint)
+test: lint ## Run formula updater tests
+	./scripts/test-update-formula.sh
 
 test-install: audit ## Full install + test cycle
 	brew install streamlinelabs/test/streamline

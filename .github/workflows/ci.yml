@@ -6,7 +6,7 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -18,11 +18,17 @@ jobs:
         run: ruby -c streamline.rb
 
       - name: Validate update script syntax
-        run: bash -n scripts/update-formula.sh
+        run: bash -n scripts/update-formula.sh scripts/test-update-formula.sh
+
+      - name: Test formula updater
+        run: ./scripts/test-update-formula.sh
+
+      - name: Audit formula structure
+        run: ./scripts/validate-formula.sh
 
       - name: Check for placeholder hashes
         run: |
-          if grep -q "PLACEHOLDER_SHA256" streamline.rb; then
+          if grep -q 'sha256 "PLACEHOLDER_SHA256' streamline.rb; then
             echo "::warning::Formula contains placeholder SHA256 hashes — run './scripts/update-formula.sh <version>' before publishing"
           else
             echo "✅ All SHA256 hashes are populated"
