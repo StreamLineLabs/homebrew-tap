@@ -4,12 +4,22 @@
 # Homebrew formula for Streamline
 # The Redis of Streaming - Kafka-compatible streaming platform
 #
-# Installation via tap:
+# Installation is currently blocked by design: see the generated
+# STABLE ARTIFACTS region below. Once the upstream release archives and their
+# signed checksum manifest are published and scripts/update-formula.sh has
+# regenerated that region, installation is:
+#
 #   brew tap streamlinelabs/tap
 #   brew install streamline
 #
-# Or direct installation:
+# Or directly:
 #   brew install streamlinelabs/tap/streamline
+#
+# Source builds (available on the same terms, once the blocker below is
+# replaced by a verified stable stanza):
+#
+#   brew install --HEAD streamlinelabs/tap/streamline
+#   brew install --HEAD --with-moonshot streamlinelabs/tap/streamline
 
 class Streamline < Formula
   desc "Kafka-compatible single-binary streaming platform"
@@ -21,53 +31,85 @@ class Streamline < Formula
     depends_on "rust" => :build
   end
 
+  # Public build contract for source/HEAD installs. `brew install --HEAD
+  # --with-moonshot streamlinelabs/tap/streamline` has been documented and
+  # supported, so this option is part of the tap's published interface and is
+  # NOT removed as cleanup: dropping it would silently turn a documented
+  # invocation into "invalid option" for every existing user and script.
+  #
+  # Known tradeoff: `option` is deprecated for homebrew/core formulae, and
+  # `brew audit --strict` flags `option`/`deprecated_option` usage there. That
+  # cop is scoped to the core tap (`formula_tap != "homebrew-core"` returns
+  # early), so it does not fire for this tap; if a future strict audit warns
+  # anyway, the warning is accepted and documented rather than "fixed" by
+  # deleting a public contract. Migrating away from it requires a deprecation
+  # cycle upstream (see README "Experimental moonshot features").
+  #
+  # Placement is dictated by Homebrew's FormulaAudit/ComponentsOrder cop:
+  # `option` sorts after the `head do` block and before `disable!` and the
+  # `on_macos`/`on_linux` blocks — i.e. before the generated region below, in
+  # both its blocked and its released form.
   option "with-moonshot",
          "Include experimental moonshot features (semantic search, agent memory, attestation, branches)"
 
-  # SHA256 hashes are computed from release artifacts by scripts/update-formula.sh
-  # To update: ./scripts/update-formula.sh <version>
-  # Or trigger the "Update Formula" GitHub Action on a new release.
+  # ---------------------------------------------------------------------------
+  # Stable release artifacts.
   #
-  # IMPORTANT: Hashes below must be updated before publishing. The placeholder value
-  # Placeholder checksum values will cause brew install to fail with a clear error.
-  # Run: ./scripts/update-formula.sh 0.3.0
+  # The region between the BEGIN/END markers below is generated verbatim by
+  # scripts/update-formula.sh from a signed upstream SHA256 manifest. Do not
+  # hand-edit it and never substitute a placeholder, a "pending" value, or
+  # `sha256 :no_check` — an unverifiable checksum is worse than no stable spec
+  # at all, because Homebrew would happily install an unauthenticated archive.
   #
-  # CI will block releases with placeholder hashes. See .github/workflows/release.yml.
-  on_macos do
-    on_arm do
-      url "https://github.com/streamlinelabs/streamline/releases/download/v0.3.0/streamline-0.3.0-aarch64-apple-darwin.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_ARM64_DARWIN" # update-formula.sh replaces this
-    end
-    on_intel do
-      url "https://github.com/streamlinelabs/streamline/releases/download/v0.3.0/streamline-0.3.0-x86_64-apple-darwin.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_X64_DARWIN" # update-formula.sh replaces this
-    end
-  end
-
-  on_linux do
-    on_arm do
-      url "https://github.com/streamlinelabs/streamline/releases/download/v0.3.0/streamline-0.3.0-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_ARM64_LINUX" # update-formula.sh replaces this
-    end
-    on_intel do
-      url "https://github.com/streamlinelabs/streamline/releases/download/v0.3.0/streamline-0.3.0-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "PLACEHOLDER_SHA256_X64_LINUX" # update-formula.sh replaces this
-    end
-  end
+  # Target release: v0.3.0 (streamlinelabs/streamline). Until every one of the
+  # four core archives for that tag is published AND covered by the upstream
+  # checksum manifest, the region carries an explicit `disable!` blocker rather
+  # than a stable spec. That is a deliberate fail-closed choice: relying on
+  # Homebrew's head-only fallback would leave `brew install streamline`
+  # resolving to whatever spec happens to exist, whereas `disable!` refuses
+  # *every* install path — stable and `--HEAD` alike — with a maintainer-written
+  # reason. HEAD installation being unavailable pre-artifact is accepted; the
+  # `--with-moonshot` option above stays declared throughout, so the HEAD build
+  # contract is intact the moment the blocker is replaced.
+  #
+  # scripts/update-formula.sh removes the blocker only by replacing this whole
+  # region with a stanza whose URLs and checksums came from the core release's
+  # keyless-Cosign-verified checksums.txt.
+  # That stanza carries no `version` stanza: Homebrew infers the version from
+  # the artifact URLs, and a stanza here — after `head do` — would fail
+  # `brew style`'s component-order cop, which requires `version` before
+  # `license`. Run, from the repository root:
+  #
+  #   ./scripts/update-formula.sh 0.3.0
+  #
+  # >>> STABLE ARTIFACTS BEGIN (generated by scripts/update-formula.sh) <<<
+  # No verified stable release artifacts are recorded: every install path is
+  # blocked until scripts/update-formula.sh replaces this region.
+  disable! date: "2026-09-02", because: "no verified upstream release artifacts are published for this formula yet"
+  # >>> STABLE ARTIFACTS END <<<
 
   def install
     if build.head?
+      # Cargo feature flags are appended after the standard arguments so the
+      # command stays `cargo install <std_cargo_args> --features moonshot`;
+      # `--features` must be followed immediately by its value, and it is
+      # emitted exactly once, only when the option was requested.
       args = std_cargo_args
       args += ["--features", "moonshot"] if build.with?("moonshot")
       system "cargo", "install", *args
     else
-      # Fail fast if placeholder hashes were not replaced
-      if stable.url.to_s.empty? || stable.checksum.to_s.start_with?("PLACEHOLDER")
-        odie <<~EOS
-          SHA256 hashes have not been updated for this release.
-          Run: ./scripts/update-formula.sh #{version}
-        EOS
-      end
+      # Reached only if a stable spec exists and the formula is not disabled.
+      # While the generated region carries `disable!`, Homebrew refuses every
+      # install before this point; this guard keeps the failure actionable if
+      # the spec is ever half-generated.
+      odie <<~EOS if stable.nil? || stable.url.to_s.empty?
+        No verified Streamline release artifacts are recorded in this formula,
+        so a stable install cannot be authenticated.
+
+        Tap maintainers: publish the v0.3.0 archives plus the upstream SHA256
+        manifest, then regenerate the stable stanza with
+          ./scripts/update-formula.sh 0.3.0
+      EOS
 
       bin.install "streamline"
       bin.install "streamline-cli" if File.exist?("streamline-cli")
