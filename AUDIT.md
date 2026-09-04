@@ -17,6 +17,7 @@
 | BREW-CC-2 | `.github/workflows/update-formula.yml` | Cross-repo trigger | P2 | Core release automation and tap maintainers | Repository dispatch payload shape and timing are controlled outside this repo. A release event before assets are downloadable fails safely but requires replay. | S | Medium |
 | BREW-CC-3 | `streamline.rb` test block | Mixed abstraction | P2 | Package validation | Binary existence, CLI contracts, HTTP readiness, management routes, and Kafka TCP readiness share one test. They serve the single installation contract, so splitting is not justified until failures need independent retries or diagnostics. | M | Low |
 | BREW-SUP-1 | README and formula caveats | Path portability | P2 | macOS Intel, Apple Silicon, and Linux users | Documentation must use `brew --prefix`/formula `var` rather than architecture-specific `/usr/local` assumptions. The baseline now centralizes those portable paths. | S | Low |
+| BREW-OPT-1 | `streamline.rb` `option "with-moonshot"` | Public build contract | P2 | Tap users/scripts vs. a future homebrew-core submission | `--with-moonshot` (HEAD/source builds pass `--features moonshot` to Cargo) is a documented, published flag and is deliberately retained: deleting it as cleanup would turn a documented command into "invalid option" with no deprecation. Known tradeoff: `option` is unacceptable in `homebrew/core`, so a core submission requires a `deprecated_option` migration. `brew audit --strict` does not flag it for this tap (`FormulaAudit/Options` returns early unless the tap is `homebrew-core`), and `brew style` is clean with the option placed after `head do` and before `disable!`/`on_*` per `FormulaAudit/ComponentsOrder`. Enforced by `scripts/test-formula-options.rb` (executes the real `install` against a stub DSL) plus updater-regeneration and docs cases in `scripts/test-update-formula.sh`. | S | Low |
 
 ## Ordered Refactor Sequence
 
@@ -34,6 +35,6 @@
 
 ## Out of Scope
 
-- Formula name, tap path, release asset names, installed binaries, service arguments, and CLI behavior remain public packaging contracts.
+- Formula name, tap path, release asset names, installed binaries, service arguments, CLI behavior, and the `--with-moonshot` build option remain public packaging contracts.
 - No shared release helper is extracted across the tap and core repository.
 - The Homebrew formula remains one class because its methods collectively describe one package and share Homebrew DSL state.

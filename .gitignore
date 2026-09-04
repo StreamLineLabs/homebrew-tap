@@ -14,3 +14,7 @@ Thumbs.db
 
 # Misc
 *.log
+
+# Atomic-rename staging files from scripts/update-formula.sh. These only exist
+# if the updater was killed mid-run; the checked-in formula is never affected.
+.streamline.rb.staged.*
