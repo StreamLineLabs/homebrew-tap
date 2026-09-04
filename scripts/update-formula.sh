@@ -68,7 +68,7 @@ done
 # Strict semantic version. Rejects shell metacharacters by construction.
 if ! printf '%s' "${VERSION}" |
   grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'; then
-  echo "❌ Invalid version '${VERSION}'. Expected semantic version, e.g. 0.3.0" >&2
+  echo "❌ Invalid version '${VERSION}'. Expected semantic version, e.g. 0.4.0" >&2
   exit 2
 fi
 

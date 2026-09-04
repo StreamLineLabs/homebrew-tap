@@ -4,7 +4,7 @@
 Homebrew formula for installing [Streamline](https://github.com/streamlinelabs/streamline) on macOS and Linux.
 
 ## Installation
-Installation is blocked — deliberately and completely — until the v0.3.0
+Installation is blocked — deliberately and completely — until the v0.4.0
 release archives and their signed SHA256 manifest are published. The generated
 region of the formula carries an explicit `disable!` stanza, so stable *and*
 `--HEAD` installs both fail closed. Homebrew's head-only fallback is not relied

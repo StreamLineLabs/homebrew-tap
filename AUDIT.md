@@ -21,7 +21,7 @@
 
 ## Ordered Refactor Sequence
 
-1. Publish all four core v0.3.0 archives and run the updater fixture against the real release.
+1. Publish all four core v0.4.0 archives and run the updater fixture against the real release.
 2. Run stable install/test on macOS ARM64, macOS Intel, Linux ARM64, and Linux x86_64.
 3. Add a credentialed test repository for `--create-pr`.
 4. Move Git branch/commit/push/PR behavior into `publish-formula-pr.sh`, leaving checksum mutation independently reusable.
@@ -30,7 +30,7 @@
 ## Deferred
 
 - **BREW-SRP-1:** GitHub PR publication cannot be verified without a disposable remote and credentials; moving it now would only relocate untested behavior.
-- Stable formula installation and `brew test` are deferred until v0.3.0 artifacts and checksums exist.
+- Stable formula installation and `brew test` are deferred until v0.4.0 artifacts and checksums exist.
 - Signing, notarization, provenance, and retention of release archives require the org release policy in `MANUAL_TO_RUN.md`.
 
 ## Out of Scope

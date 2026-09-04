@@ -10,7 +10,7 @@ Official [Homebrew](https://brew.sh) tap for [Streamline](https://github.com/str
 ## Installation
 
 > **Status: installation from this tap is currently blocked — on purpose.**
-> The v0.3.0 release archives for `streamlinelabs/streamline` have not been
+> The v0.4.0 release archives for `streamlinelabs/streamline` have not been
 > published, so no verifiable SHA256 checksums exist. Rather than ship
 > placeholder or unchecked hashes — or rely on Homebrew quietly falling back to
 > a source build — the formula carries an explicit `disable!` stanza. **Every**
@@ -21,9 +21,9 @@ Official [Homebrew](https://brew.sh) tap for [Streamline](https://github.com/str
 > To try Streamline in the meantime, build it from the
 > [upstream repository](https://github.com/streamlinelabs/streamline) directly.
 
-### Stable installation (available once v0.3.0 artifacts are published)
+### Stable installation (available once v0.4.0 artifacts are published)
 
-Once maintainers have run `./scripts/update-formula.sh 0.3.0` against the
+Once maintainers have run `./scripts/update-formula.sh 0.4.0` against the
 published, signed release, the blocker is replaced by verified artifact URLs and
 checksums and the normal commands work:
 
@@ -153,7 +153,7 @@ unqualified `brew install streamline` silently resolve to a HEAD source build.
 adding one would defeat the purpose.
 
 Once the release is published, maintainers regenerate the stable stanza with
-`./scripts/update-formula.sh 0.3.0`, which removes the blocker as part of
+`./scripts/update-formula.sh 0.4.0`, which removes the blocker as part of
 writing verified URLs and checksums; then `brew update && brew install
 streamline` works normally.
 

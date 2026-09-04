@@ -36,11 +36,11 @@ test-install-head-moonshot: ## HEAD install + test with --with-moonshot (blocked
 test-install-stable: ## Stable install + test; requires published release artifacts
 	./scripts/validate-formula.sh --mode release --install-stable
 
-update: ## Regenerate the stable stanza (usage: make update VERSION=0.3.0)
+update: ## Regenerate the stable stanza (usage: make update VERSION=0.4.0)
 	@test -n "$(VERSION)" || (echo "Usage: make update VERSION=x.y.z" && exit 1)
 	./scripts/update-formula.sh $(VERSION)
 
-update-pr: ## Regenerate the stable stanza and open a PR (usage: make update-pr VERSION=0.3.0)
+update-pr: ## Regenerate the stable stanza and open a PR (usage: make update-pr VERSION=0.4.0)
 	@test -n "$(VERSION)" || (echo "Usage: make update-pr VERSION=x.y.z" && exit 1)
 	./scripts/update-formula.sh $(VERSION) --create-pr
 

@@ -113,7 +113,7 @@ warning.
 Checksums are never hand-written:
 
 ```bash
-./scripts/update-formula.sh 0.3.0
+./scripts/update-formula.sh 0.4.0
 ```
 
 Signature verification is required by default. `STREAMLINE_REQUIRE_SIGNATURE`
