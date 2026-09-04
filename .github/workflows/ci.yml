@@ -76,14 +76,14 @@ jobs:
         run: ./scripts/validate-formula.sh --mode "${METADATA_MODE}"
 
   release-gate:
-    # Advisory mirror of the tag-time gate in release.yml. It stays red until
-    # real artifact URLs and SHA256 hashes are recorded, and is intentionally
-    # non-blocking for day-to-day pushes so ordinary work is not gated on an
-    # upstream release that has not happened yet.
-    runs-on: ubuntu-latest
-    continue-on-error: true
+    # Strict mirror of the tag-time gate in release.yml. Ordinary pushes and
+    # pull requests validate the intentional pre-artifact state in `validate`;
+    # only an explicit release-mode dispatch downloads, verifies, installs and
+    # tests the stable artifact through Homebrew.
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'release'
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Release readiness (red until artifacts exist)
-        run: ./scripts/check-formula-metadata.sh --mode release
+      - name: Verify and install stable release artifacts
+        run: ./scripts/validate-formula.sh --mode release --install-stable

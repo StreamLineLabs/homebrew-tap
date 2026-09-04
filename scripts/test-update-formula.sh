@@ -22,6 +22,7 @@ trap 'rm -rf "$WORKDIR"' EXIT
 UPDATER="${ROOT}/scripts/update-formula.sh"
 METADATA_CHECK="${ROOT}/scripts/check-formula-metadata.sh"
 LIVE_FORMULA="${ROOT}/streamline.rb"
+CI_WORKFLOW="${ROOT}/.github/workflows/ci.yml"
 PAYLOAD="${WORKDIR}/payload"
 RELEASE_DIR="${WORKDIR}/release"
 mkdir -p "${PAYLOAD}" "${RELEASE_DIR}"
@@ -948,6 +949,32 @@ if grep -q 'HEAD_ARGS+=(--with-moonshot)' "${VALIDATOR}"; then
   pass "case 13: validate-formula.sh forwards --with-moonshot to 'brew install --HEAD'"
 else
   fail "case 13: validate-formula.sh does not forward --with-moonshot to brew"
+fi
+
+# ---------------------------------------------------------------------------
+echo "==> Case 14: manual release CI installs the verified stable artifact"
+RELEASE_GATE="${WORKDIR}/release-gate.yml"
+sed -n '/^  release-gate:/,$p' "${CI_WORKFLOW}" >"${RELEASE_GATE}"
+
+if grep -qF "if: github.event_name == 'workflow_dispatch' && inputs.mode == 'release'" "${RELEASE_GATE}"; then
+  pass "case 14: strict release gate runs only for an explicit release-mode dispatch"
+else
+  fail "case 14: strict release gate is not limited to release-mode workflow_dispatch"
+fi
+if grep -qF 'runs-on: macos-latest' "${RELEASE_GATE}"; then
+  pass "case 14: strict release gate runs on macOS with Homebrew available"
+else
+  fail "case 14: strict release gate does not run on macOS"
+fi
+if grep -qF './scripts/validate-formula.sh --mode release --install-stable' "${RELEASE_GATE}"; then
+  pass "case 14: strict release gate downloads, verifies, installs and tests the stable formula"
+else
+  fail "case 14: strict release gate does not exercise the stable install path"
+fi
+if grep -q 'continue-on-error' "${RELEASE_GATE}"; then
+  fail "case 14: strict release gate suppresses a real publication failure"
+else
+  pass "case 14: strict release gate remains fail-closed"
 fi
 
 echo

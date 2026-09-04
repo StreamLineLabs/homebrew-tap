@@ -168,12 +168,14 @@ Pull requests are tested by GitHub Actions:
 | Job | Runner | What it tests |
 |---|---|---|
 | `validate` | macOS | Ruby + shell syntax, offline stable-metadata gate, hermetic updater tests, source/HEAD option contract tests, `brew style` and offline `brew audit` through an ephemeral tap |
-| `release-gate` | Ubuntu | Advisory mirror of the tag-time gate; red until real artifact URLs and hashes exist, and non-blocking for day-to-day pushes |
+| `release-gate` | macOS | Strict stable artifact download, checksum verification, install, and `brew test`, run only by an explicit `workflow_dispatch` with `mode=release`; ordinary PRs and pushes skip it neutrally |
 
-No job installs the formula: while the `disable!` blocker is in place there is
-nothing installable, and audits are deliberately offline (no `--online`, no
-release artifact is fetched). Install/test of the stable formula runs at tag
-time in `release.yml`, after the release metadata gate has passed.
+Ordinary pull-request and push CI does not install the formula: while the
+`disable!` blocker is in place there is nothing installable, and its audits are
+deliberately offline (no `--online`, no release artifact is fetched).
+Install/test of the stable formula runs at tag time in `release.yml` and during
+an explicit release-mode CI dispatch, after the release metadata gate has
+passed.
 
 ## License
 
