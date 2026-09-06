@@ -2,21 +2,41 @@ name: Release
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
 
 permissions:
   contents: write
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate formula
-        run: |
-          brew install --build-from-source ./Formula/streamline.rb
-          brew test ./Formula/streamline.rb
+      # Hard gate: no placeholder, pending, :no_check, malformed checksum,
+      # missing stable artifact metadata, or leftover `disable!` blocker may
+      # ever reach a published tag.
+      - name: Enforce release metadata
+        run: ./scripts/check-formula-metadata.sh --mode release
+
+      # The tap's public source-build contract (`option "with-moonshot"` and
+      # the conditional `--features moonshot` cargo arguments) must survive
+      # stanza regeneration; a tag that silently dropped it would break the
+      # documented `brew install --HEAD --with-moonshot` command.
+      - name: Enforce the source/HEAD build option contract
+        run: ruby scripts/test-formula-options.rb streamline.rb
+
+      - name: Audit formula in place
+        run: ./scripts/validate-formula.sh --mode release
+
+      # Install/test through an ephemeral tap holding a verified byte-for-byte
+      # copy of this repository's formula, so Homebrew resolves it exactly as a
+      # user would. Direct `brew install --formula <path>` is deliberately not
+      # used: Homebrew rejects untapped paths outright, and it would bypass tap
+      # resolution and several audits. The copy is `cmp`d against the
+      # repository file before and after, so a stale copy cannot pass.
+      - name: Install and test the stable formula
+        run: ./scripts/validate-formula.sh --mode release --install-stable
 
       - uses: softprops/action-gh-release@v2
         with:

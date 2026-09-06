@@ -6,8 +6,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g. 0.2.0)"
+        description: "Release version, semantic and without a leading 'v' (e.g. 0.4.0)"
         required: true
+
+permissions:
+  contents: read
 
 jobs:
   update:
@@ -18,29 +21,57 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+
+      - uses: sigstore/cosign-installer@v3.8.2
+        with:
+          cosign-release: "v2.4.1"
+
+      # Untrusted input (workflow_dispatch input / cross-repo dispatch payload)
+      # is passed through the environment and never interpolated into the shell.
       - name: Determine version
         id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          DISPATCH_VERSION: ${{ github.event.client_payload.version }}
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            RAW="${{ github.event.inputs.version }}"
-          else
-            RAW="${{ github.event.client_payload.version }}"
+          set -euo pipefail
+          RAW="${INPUT_VERSION:-${DISPATCH_VERSION:-}}"
+          RAW="${RAW#v}"
+          if ! printf '%s' "$RAW" |
+            grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Rejected version input; expected a semantic version such as 0.4.0"
+            exit 1
           fi
-          # Strip leading 'v' if present (e.g., v0.2.0 -> 0.2.0)
-          echo "version=${RAW#v}" >> "$GITHUB_OUTPUT"
+          echo "version=$RAW" >>"$GITHUB_OUTPUT"
 
+      # The updater downloads checksums.txt plus its keyless Cosign signature
+      # and certificate, pins the exact core release workflow identity and
+      # GitHub Actions OIDC issuer, and only then verifies every archive.
       - name: Update formula
-        run: ./scripts/update-formula.sh "${{ steps.version.outputs.version }}"
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          STREAMLINE_REQUIRE_SIGNATURE: "1"
+        run: ./scripts/update-formula.sh "$VERSION"
 
-      - name: Validate formula
+      # PRs opened with the default GITHUB_TOKEN do not trigger workflow runs,
+      # so every check that would normally gate the PR runs here first.
+      - name: Validate updated formula
         run: |
+          set -euo pipefail
           ruby -c streamline.rb
-          brew audit --formula streamline.rb || true
+          ./scripts/check-formula-metadata.sh --mode release
+          ./scripts/validate-formula.sh --mode release
+          ./scripts/test-update-formula.sh
 
-      - name: Check for placeholder hashes
+      - name: Verify the diff only touches the formula
         run: |
-          if grep -q "PLACEHOLDER_SHA256" streamline.rb; then
-            echo "::error::Formula still contains placeholder SHA256 hashes"
+          set -euo pipefail
+          changed=$(git diff --name-only)
+          if [ "$changed" != "streamline.rb" ]; then
+            echo "::error::Unexpected files changed by the updater: $changed"
             exit 1
           fi
 
@@ -52,8 +83,19 @@ jobs:
           body: |
             Automated formula update for Streamline v${{ steps.version.outputs.version }}.
 
-            - Updated SHA256 hashes from release artifacts
-            - Updated version string
+            - Stable stanza regenerated from upstream `checksums.txt`, whose
+              keyless signature and certificate were verified with Cosign
+              against the exact tagged core release workflow identity and the
+              GitHub Actions OIDC issuer
+            - Four artifact URLs and four verified checksums; Homebrew infers the
+              version from those URLs, so no redundant `version` stanza is written
+              (one in the generated region would also break `brew style`'s
+              component-order cop, which requires `version` before `license`)
+            - The fail-closed `disable!` blocker was replaced, not appended to, so
+              stable installation is now possible for the first time
+            - Validated in this workflow run (`check-formula-metadata.sh --mode release`,
+              `validate-formula.sh --mode release`, hermetic updater tests), because
+              default-token pull requests do not trigger CI.
 
             Triggered by release of [v${{ steps.version.outputs.version }}](https://github.com/streamlinelabs/streamline/releases/tag/v${{ steps.version.outputs.version }}).
           branch: "update/v${{ steps.version.outputs.version }}"

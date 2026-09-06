@@ -3,10 +3,28 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Metadata mode to enforce (pre-artifact keeps the blocked state green; release requires published artifacts)"
+        required: false
+        default: "pre-artifact"
+        type: choice
+        options:
+          - pre-artifact
+          - release
+
+permissions:
+  contents: read
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
+    env:
+      # pre-artifact accepts exactly two states: fully blocked (a generated
+      # `disable!` region, no stable spec) or fully populated. Anything in
+      # between is a hard failure.
+      METADATA_MODE: ${{ inputs.mode || 'pre-artifact' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -17,13 +35,55 @@ jobs:
       - name: Validate Ruby syntax
         run: ruby -c streamline.rb
 
-      - name: Validate update script syntax
-        run: bash -n scripts/update-formula.sh
-
-      - name: Check for placeholder hashes
+      - name: Validate shell script syntax
         run: |
-          if grep -q "PLACEHOLDER_SHA256" streamline.rb; then
-            echo "::warning::Formula contains placeholder SHA256 hashes — run './scripts/update-formula.sh <version>' before publishing"
-          else
-            echo "✅ All SHA256 hashes are populated"
-          fi
+          bash -n scripts/update-formula.sh
+          bash -n scripts/test-update-formula.sh
+          bash -n scripts/validate-formula.sh
+          bash -n scripts/check-formula-metadata.sh
+
+      - name: Enforce stable release metadata
+        run: ./scripts/check-formula-metadata.sh --mode "${METADATA_MODE}"
+
+      # The tap's public source-build contract (`option "with-moonshot"` and the
+      # conditional `--features moonshot` cargo arguments). The formula's real
+      # `install` runs against a stub Homebrew DSL, so this holds in the blocked
+      # pre-artifact state too, where no install path can be exercised.
+      #
+      # It is run twice on purpose. The formula source is UTF-8, and Ruby tags
+      # file reads with Encoding.default_external; the second run pins the
+      # worst case (LC_ALL=C ⇒ US-ASCII) so a regression to a locale-dependent
+      # read is caught here and not on some minimal-locale runner later.
+      - name: Test source/HEAD build options (hermetic, no brew)
+        run: ruby scripts/test-formula-options.rb streamline.rb
+
+      - name: Test source/HEAD build options under a C/POSIX locale
+        env:
+          LC_ALL: C
+          LANG: C
+        run: ruby scripts/test-formula-options.rb streamline.rb
+
+      - name: Test formula updater (hermetic fixtures, no network)
+        run: ./scripts/test-update-formula.sh
+
+      # Audits run through an ephemeral tap holding a verified byte-for-byte
+      # copy of streamline.rb (Homebrew realpath-resolves formulae, so a
+      # symlink back into the checkout is rejected). The copy is `cmp`d against
+      # the repository file before and after the brew steps, so a green run
+      # always describes the checked-in bytes. No install is attempted: the
+      # formula is intentionally disabled pre-artifact.
+      - name: Audit formula via an ephemeral tap
+        run: ./scripts/validate-formula.sh --mode "${METADATA_MODE}"
+
+  release-gate:
+    # Strict mirror of the tag-time gate in release.yml. Ordinary pushes and
+    # pull requests validate the intentional pre-artifact state in `validate`;
+    # only an explicit release-mode dispatch downloads, verifies, installs and
+    # tests the stable artifact through Homebrew.
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'release'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify and install stable release artifacts
+        run: ./scripts/validate-formula.sh --mode release --install-stable

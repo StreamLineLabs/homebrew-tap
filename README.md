@@ -9,24 +9,64 @@ Official [Homebrew](https://brew.sh) tap for [Streamline](https://github.com/str
 
 ## Installation
 
+> **Status: installation from this tap is currently blocked — on purpose.**
+> The v0.4.0 release archives for `streamlinelabs/streamline` have not been
+> published, so no verifiable SHA256 checksums exist. Rather than ship
+> placeholder or unchecked hashes — or rely on Homebrew quietly falling back to
+> a source build — the formula carries an explicit `disable!` stanza. **Every**
+> install path fails closed, including `--HEAD`. There is no supported way to
+> install Streamline from this tap until the release artifacts and their signed
+> checksum manifest exist.
+>
+> To try Streamline in the meantime, build it from the
+> [upstream repository](https://github.com/streamlinelabs/streamline) directly.
+
+### Stable installation (available once v0.4.0 artifacts are published)
+
+Once maintainers have run `./scripts/update-formula.sh 0.4.0` against the
+published, signed release, the blocker is replaced by verified artifact URLs and
+checksums and the normal commands work:
+
 ```bash
 brew tap streamlinelabs/tap
 brew install streamline
 ```
 
-Or install directly in one command:
+Or, in one command:
 
 ```bash
 brew install streamlinelabs/tap/streamline
 ```
 
-### Install from HEAD (build from source)
+A `--HEAD` build (which compiles from source and requires Rust, installed
+automatically as a build dependency) becomes available at the same time:
 
 ```bash
 brew install --HEAD streamlinelabs/tap/streamline
 ```
 
-This requires Rust to be installed (Homebrew will install it automatically as a build dependency).
+### Experimental moonshot features (source builds only)
+
+The tap publishes one build option, `--with-moonshot`, which compiles
+Streamline's experimental moonshot features (semantic search, agent memory,
+attestation, branches) by passing `--features moonshot` to Cargo. It applies to
+source builds only — bottles and release archives are always built without it —
+and, like every other install path, it is blocked until the release artifacts
+and their signed manifest exist:
+
+```bash
+brew install --HEAD --with-moonshot streamlinelabs/tap/streamline
+```
+
+This option is a public interface of the tap: it is documented, tested
+(`make test-options`), and deliberately preserved rather than dropped during
+cleanups, because removing it would turn a documented command into an "invalid
+option" error for existing users and scripts. Known tradeoff: Homebrew
+discourages `option` in `homebrew/core` formulae (its `FormulaAudit/Options`
+cop reports it there), so a future homebrew-core submission would have to
+migrate the flag — with a `deprecated_option` cycle — rather than delete it
+silently. `brew audit --strict` does not flag it for this tap, and the contract
+is kept until that migration is actually performed.
 
 ## Upgrade
 
@@ -49,7 +89,7 @@ brew untap streamlinelabs/tap   # optional: remove the tap
 
 ```bash
 # Start in foreground
-streamline --data-dir /usr/local/var/streamline
+streamline --data-dir "$(brew --prefix)/var/streamline"
 
 # Start in playground mode (in-memory, demo topics)
 streamline --playground
@@ -94,32 +134,41 @@ Streamline is Kafka protocol-compatible. Connect any Kafka client to `localhost:
 |---|---|
 | `$(brew --prefix)/bin/streamline` | Server binary |
 | `$(brew --prefix)/bin/streamline-cli` | CLI binary |
-| `/usr/local/var/streamline/` | Data directory |
-| `/usr/local/var/log/streamline.log` | Log file |
+| `$(brew --prefix)/var/streamline/` | Data directory |
+| `$(brew --prefix)/var/log/streamline.log` | Log file |
 
 ## Troubleshooting
 
-### Installation Fails with SHA256 Mismatch
+### `brew install` Reports That the Formula Is Disabled
 
-The formula may have placeholder hashes if the release artifacts haven't been published yet. Wait for the release to complete and retry:
+That is the intended, documented state. The formula deliberately records no
+stable artifacts until the release's `checksums.txt`, keyless Cosign
+`checksums.txt.sig`/`.pem`, and v-prefixed archives are published; there is
+nothing to verify against, so no install can be
+authenticated. The `disable!` stanza makes that explicit instead of letting an
+unqualified `brew install streamline` silently resolve to a HEAD source build.
 
-```bash
-brew update
-brew install streamline
-```
+`brew install --HEAD` is blocked for the same reason, with or without
+`--with-moonshot`. There is no flag or workaround that re-enables it, and
+adding one would defeat the purpose.
+
+Once the release is published, maintainers regenerate the stable stanza with
+`./scripts/update-formula.sh 0.4.0`, which removes the blocker as part of
+writing verified URLs and checksums; then `brew update && brew install
+streamline` works normally.
 
 ### Service Won't Start
 
 Check the log file for errors:
 
 ```bash
-tail -50 /usr/local/var/log/streamline.log
+tail -50 "$(brew --prefix)/var/log/streamline.log"
 ```
 
 Ensure the data directory exists and is writable:
 
 ```bash
-mkdir -p /usr/local/var/streamline
+mkdir -p "$(brew --prefix)/var/streamline"
 ```
 
 ### Port Already in Use
@@ -142,7 +191,8 @@ brew doctor
 
 ```bash
 brew services stop streamline
-rm -rf /usr/local/var/streamline/*
+rm -rf "$(brew --prefix)/var/streamline"
+mkdir -p "$(brew --prefix)/var/streamline"
 brew services start streamline
 ```
 
@@ -153,10 +203,22 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development instructions.
 ### Quick Validation
 
 ```bash
-make lint          # Ruby syntax check
-make audit         # Homebrew audit (strict)
-make test-install  # Full install + test cycle
+make lint                     # Ruby syntax check
+make metadata                 # Offline stable-metadata gate (pre-artifact)
+make metadata MODE=release    # Release gate; red until artifacts exist
+make test                     # Hermetic updater fixtures (no network)
+make test-options             # Source/HEAD build option contract (no brew, no network)
+make audit                    # brew style + offline brew audit via an ephemeral tap
 ```
+
+`make audit` builds a throwaway tap, copies `streamline.rb` into it and `cmp`s
+the copy against the working-tree file before and after the brew steps, so
+Homebrew audits a tapped formula that is provably the exact file in this tree.
+(A symlink cannot be used: Homebrew realpath-resolves the formula and rejects
+one that resolves back out of the tap.) The install targets
+(`make test-install-head`, `make test-install-head-moonshot`,
+`make test-install-stable`) go through the same tap and are expected to fail
+while the formula is disabled.
 
 ## License
 
@@ -164,25 +226,3 @@ Apache-2.0
 <!-- refactor: 61f2f890 -->
 <!-- docs: 037adec4 -->
 <!-- chore: 51a2c084 -->
-
-<!-- add tap installation troubleshooting notes -->
-
-
-
-## Upgrading
-
-```bash
-brew update
-brew upgrade streamline
-```
-
-## Troubleshooting
-
-If you encounter issues after upgrading:
-
-```bash
-brew uninstall streamline
-brew install streamline
-```
-
-
