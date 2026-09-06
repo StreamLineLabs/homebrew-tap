@@ -11,7 +11,7 @@ jobs:
   release:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Hard gate: no placeholder, pending, :no_check, malformed checksum,
       # missing stable artifact metadata, or leftover `disable!` blocker may
@@ -38,6 +38,6 @@ jobs:
       - name: Install and test the stable formula
         run: ./scripts/validate-formula.sh --mode release --install-stable
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
