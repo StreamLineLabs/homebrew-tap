@@ -26,7 +26,7 @@ jobs:
       # between is a hard failure.
       METADATA_MODE: ${{ inputs.mode || 'pre-artifact' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -83,7 +83,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'release'
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Verify and install stable release artifacts
         run: ./scripts/validate-formula.sh --mode release --install-stable
